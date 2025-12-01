@@ -24,12 +24,20 @@ func day1() {
 			var direction = match[1]
 			var clicks, parseErr = strconv.Atoi(match[2])
 			if parseErr == nil {
+				var previousPosition = position
+				var fullRotations = 0
+				if (clicks / 100) > 0 {
+					fullRotations = clicks / 100
+				}
+
 				var netClicks = clicks
 				// A full rotation puts the dial back to the same location, so
 				// we only care about rotations that are net beyond that
 				if (clicks % 100) > 0 {
 					netClicks = clicks % 100
 				}
+
+				var rotationCount = fullRotations
 
 				if direction == "L" {
 					position -= netClicks
@@ -39,20 +47,28 @@ func day1() {
 
 				if position > 99 {
 					position = position - 100
+					if position != 0 {
+						rotationCount++
+					}
 				} else if position < 0 {
 					position = position + 100
+					if previousPosition != 0 && position != 0 {
+						rotationCount++
+					}
 				}
-
-				fmt.Printf("The dial is rotated %s%d to point at %d.\n", direction, clicks, position)
 
 				if position == 0 {
-					count++
+					rotationCount++
 				}
+
+				count += rotationCount
+
+				fmt.Printf("The dial is rotated %s%d to point at %d; During this rotation, it points at zero %d time(s).\n", direction, clicks, position, rotationCount)
 			}
 		}
 	}
 
-	fmt.Printf("Pass-count: %d", count)
+	fmt.Printf("Pass-count: %d\n", count)
 }
 
 func readLines(filePath string) ([]string, error) {
