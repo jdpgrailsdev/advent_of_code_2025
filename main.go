@@ -13,31 +13,35 @@ func main() {
 }
 
 func day1() {
-	var pattern = regexp.MustCompile(`(L|R)(\d+)`)
-	var lines, err = readLines("input/day1.txt")
-	var position = 50
-	var count = 0
-	if err == nil {
+	lines, err := readLines("input/day1.txt")
+	if err != nil {
+		fmt.Printf("Error reading from input file: %v\n", err)
+	} else {
+		pattern := regexp.MustCompile(`(L|R)(\d+)`)
+		position := 50
+		count := 0
 		fmt.Printf("The dial starts by pointing at %d\n", position)
 		for _, line := range lines {
-			var match = pattern.FindStringSubmatch(line)
-			var direction = match[1]
-			var clicks, parseErr = strconv.Atoi(match[2])
-			if parseErr == nil {
-				var previousPosition = position
-				var fullRotations = 0
+			match := pattern.FindStringSubmatch(line)
+			direction := match[1]
+			clicks, parseErr := strconv.Atoi(match[2])
+			if parseErr != nil {
+				fmt.Printf("Error parsing line input %s: %v\n", line, err)
+			} else {
+				previousPosition := position
+				fullRotations := 0
 				if (clicks / 100) > 0 {
 					fullRotations = clicks / 100
 				}
 
-				var netClicks = clicks
+				netClicks := clicks
 				// A full rotation puts the dial back to the same location, so
 				// we only care about rotations that are net beyond that
 				if (clicks % 100) > 0 {
 					netClicks = clicks % 100
 				}
 
-				var rotationCount = fullRotations
+				rotationCount := fullRotations
 
 				if direction == "L" {
 					position -= netClicks
@@ -66,9 +70,8 @@ func day1() {
 				fmt.Printf("The dial is rotated %s%d to point at %d; During this rotation, it points at zero %d time(s).\n", direction, clicks, position, rotationCount)
 			}
 		}
+		fmt.Printf("Pass-count: %d\n", count)
 	}
-
-	fmt.Printf("Pass-count: %d\n", count)
 }
 
 func readLines(filePath string) ([]string, error) {
