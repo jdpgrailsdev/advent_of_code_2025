@@ -40,25 +40,24 @@ func day3Part2() {
 		total := 0
 		for _, line := range lines {
 			var joltage [12]int
-			batteryIndex := 0
-			for i := 0; i < len(line); i++ {
-				digit, _ := strconv.Atoi(string(line[i]))
-				if joltage[batteryIndex] <= digit {
-					if len(line)-i < (limit - batteryIndex) {
-						batteryIndex = min((limit - 1), batteryIndex+1)
-						joltage[batteryIndex] = digit
-					} else {
-						joltage[batteryIndex] = digit
+			startPosition := 0
+			for i := 0; i < limit; i++ {
+				index := 0
+				maxDigit := 0
+				subline := line[startPosition : len(line)-(limit-1-i)]
+
+				for j, c := range subline {
+					digit, _ := strconv.Atoi(string(c))
+					if maxDigit < digit {
+						maxDigit = digit
+						index = j
 					}
-				} else if batteryIndex == limit-1 {
-					if joltage[batteryIndex] <= digit {
-						joltage[batteryIndex] = digit
-					}
-				} else {
-					batteryIndex++
-					joltage[batteryIndex] = digit
 				}
+
+				joltage[i] = maxDigit
+				startPosition += (index + 1)
 			}
+
 			joltageValue := arrayToInt(joltage)
 			fmt.Printf("In %s, you can make the largest joltage possible %d.\n", line, joltageValue)
 			total += joltageValue
