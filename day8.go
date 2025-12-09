@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jdpgrailsdev/utils"
-	"math"
 	"slices"
 	"sort"
 	"strconv"
@@ -11,9 +10,10 @@ import (
 )
 
 type JunctionBox struct {
-	X float64
-	Y float64
-	Z float64
+	ID int
+	X  int
+	Y  int
+	Z  int
 }
 
 func (j JunctionBox) toString() string {
@@ -37,19 +37,30 @@ func (c Circuit) compare(other Circuit) bool {
 	return slices.Equal(c.Boxes, other.Boxes)
 }
 
+func (c Circuit) print() {
+	for _, b := range c.Boxes {
+		fmt.Printf("%s\t", b.toString())
+	}
+	fmt.Println()
+}
+
 func day8Part1() {
-	lines, err := utils.ReadLines("input/day8.txt")
+	input := "input/day8.txt"
+	lines, err := utils.ReadLines(input)
 	if err != nil {
 		fmt.Printf("Error reading from input file: %v\n", err)
 	} else {
 		maxPairs := 1000
+		if strings.Contains(input, "example") {
+			maxPairs = 10
+		}
 		junctionBoxes := []JunctionBox{}
-		for _, line := range lines {
+		for i, line := range lines {
 			coords := strings.Split(line, ",")
-			x, _ := strconv.ParseFloat(coords[0], 64)
-			y, _ := strconv.ParseFloat(coords[1], 64)
-			z, _ := strconv.ParseFloat(coords[2], 64)
-			junctionBoxes = append(junctionBoxes, JunctionBox{X: x, Y: y, Z: z})
+			x, _ := strconv.Atoi(coords[0])
+			y, _ := strconv.Atoi(coords[1])
+			z, _ := strconv.Atoi(coords[2])
+			junctionBoxes = append(junctionBoxes, JunctionBox{ID: i, X: x, Y: y, Z: z})
 		}
 
 		connections := computeDistances(junctionBoxes)
@@ -57,12 +68,6 @@ func day8Part1() {
 		sort.Slice(circuits, func(i, j int) bool {
 			return len(circuits[i].Boxes) > len(circuits[j].Boxes)
 		})
-
-		totalPairs := 0
-		for _, c := range circuits[0:3] {
-			totalPairs += len(c.Boxes)
-		}
-		fmt.Printf("Total junction pairs present in circuits: %d\n", totalPairs)
 
 		total := 1
 		for _, c := range circuits[0:3] {
@@ -84,18 +89,18 @@ func day8Part2() {
 	// }
 }
 
-func sortConnections(connections map[float64]Connection) []float64 {
-	keys := []float64{}
+func sortConnections(connections map[int]Connection) []int {
+	keys := []int{}
 	for k := range connections {
 		keys = append(keys, k)
 	}
 
-	sort.Float64s(keys)
+	sort.Ints(keys)
 
 	return keys
 }
 
-func findCircuits(connections map[float64]Connection, boxes []JunctionBox, maxPairs int) []Circuit {
+func findCircuits(connections map[int]Connection, boxes []JunctionBox, maxPairs int) []Circuit {
 	circuits := []Circuit{}
 	pairs := 0
 	sortedKeys := sortConnections(connections)
@@ -105,27 +110,23 @@ func findCircuits(connections map[float64]Connection, boxes []JunctionBox, maxPa
 		left := connection.Left
 		right := connection.Right
 
-		circuit, index := findCircuit(circuits, left, right)
+		if left != right {
+			circuit, index := findCircuit(circuits, left, right)
 
-		if circuit == nil {
-			circuit = &Circuit{Boxes: []JunctionBox{}}
-		}
+			if circuit == nil {
+				circuit = &Circuit{Boxes: []JunctionBox{}}
+			}
 
-		if !slices.Contains(circuit.Boxes, left) || !slices.Contains(circuit.Boxes, right) {
-			circuit.Boxes = appendUnique(circuit.Boxes, left)
-			circuit.Boxes = appendUnique(circuit.Boxes, right)
-			if index > -1 {
-				circuits[index] = *circuit
-			} else {
-				circuits = append(circuits, *circuit)
+			if !slices.Contains(circuit.Boxes, left) || !slices.Contains(circuit.Boxes, right) {
+				circuit.Boxes = appendUnique(circuit.Boxes, left)
+				circuit.Boxes = appendUnique(circuit.Boxes, right)
+				if index > -1 {
+					circuits[index] = *circuit
+				} else {
+					circuits = append(circuits, *circuit)
+				}
+				pairs++
 			}
-			pairs++
-		} else {
-			fmt.Printf("Circuit already contains %s and %s: \n", left.toString(), right.toString())
-			for _, b := range circuit.Boxes {
-				fmt.Printf("%s ", b.toString())
-			}
-			fmt.Println()
 		}
 
 		if pairs == maxPairs {
@@ -147,13 +148,17 @@ func findCircuit(circuits []Circuit, box1 JunctionBox, box2 JunctionBox) (*Circu
 
 }
 
-func computeDistance(box1 JunctionBox, box2 JunctionBox) float64 {
-	return math.Pow(box1.X-box2.X, 2) + math.Pow(box1.Y-box2.Y, 2) + math.Pow(box1.Z-box2.Z, 2)
+func computeDistance(box1 JunctionBox, box2 JunctionBox) int {
+	// Avoid sqrt for performance
+	dx := box1.X - box2.X
+	dy := box1.Y - box2.Y
+	dz := box1.Z - box2.Z
+	return (dx * dx) + (dy * dy) + (dz * dz)
 }
 
-func computeDistances(boxes []JunctionBox) map[float64]Connection {
+func computeDistances(boxes []JunctionBox) map[int]Connection {
 	points := len(boxes)
-	connections := make(map[float64]Connection)
+	connections := make(map[int]Connection)
 
 	for i := 0; i < points; i++ {
 		for j := 0; j < points; j++ {
@@ -161,7 +166,10 @@ func computeDistances(boxes []JunctionBox) map[float64]Connection {
 				left := boxes[i]
 				right := boxes[j]
 				distance := computeDistance(left, right)
-				connections[distance] = Connection{Left: left, Right: right}
+				_, ok := connections[distance]
+				if !ok {
+					connections[distance] = Connection{Left: left, Right: right}
+				}
 			}
 		}
 	}
@@ -170,10 +178,9 @@ func computeDistances(boxes []JunctionBox) map[float64]Connection {
 }
 
 func appendUnique(slice []JunctionBox, element JunctionBox) []JunctionBox {
-	for _, box := range slice {
-		if box.compare(element) {
-			return slice
-		}
+	if slices.Contains(slice, element) {
+		return slice
+	} else {
+		return append(slice, element)
 	}
-	return append(slice, element)
 }
